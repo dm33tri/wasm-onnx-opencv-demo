@@ -1,1 +1,0 @@
-[Demo](https://dm33tri.github.io/wasm-onnx-opencv-demo/)
