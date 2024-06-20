@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Faceswap</title>
+</head>
+<body>
+  <input type="file" id="input" accept="image/*" />
+  <button type="button" id="camera">Camera</button>
+  <button type="button" id="button">Run</button>
+  <div id="timing">??ms</div>
+  <canvas id="canvas" width="192" height="192"></canvas>
+  <canvas id="result" width="192" height="192"></canvas>
+  <script type="module">
+    import initModule from './app.js';
+
+    let module = initModule();
+
+    const image = new Image();
+    image.src = './image.jpeg';
+
+    input.onchange = function (event) {
+      const file = event.target.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+  
+      reader.onload = function(event) {
+        image.src = event.target.result;
+      }
+
+      reader.readAsDataURL(file);
+    }
+
+    image.onload = function() {
+      const scale = Math.min(canvas.width / image.width, canvas.height / image.height);
+      const context = canvas.getContext('2d');
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, image.width * scale, image.height * scale);
+    }
+
+    camera.onclick = function() {
+      const context = canvas.getContext('2d');
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          const video = document.createElement('video');
+          let aspect = 1, x = 0, y = 0;
+          video.srcObject = stream;
+          video.play();
+
+          function draw() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(video, x, y, video.videoWidth / aspect, video.videoHeight, 0, 0, canvas.width, canvas.height);
+            run();
+            window.requestAnimationFrame(draw);
+          }
+
+          video.onloadedmetadata = function () {
+            aspect = video.videoWidth / video.videoHeight;
+            if (aspect > 1) {
+              x = (video.videoWidth - video.videoHeight) / 2;
+            } else {
+              y = (video.videoHeight - video.videoWidth) / 2;
+            }
+          }
+          draw();
+        });
+    }
+
+    async function run() {
+      const input = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+      const array = new Uint8Array(input.data);
+      const start = performance.now();
+      const output = (await module).run(array, canvas.width, canvas.height);
+      const time = Math.round(performance.now() - start);
+      timing.innerHTML = `${time}ms`;
+      const outputImage = new ImageData(new Uint8ClampedArray(output), canvas.width, canvas.height, {});
+      result.getContext('2d').putImageData(outputImage, 0, 0);
+    }
+
+    button.onclick = run;
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+.vscode
+venv
+build/*
+!build/image.jpeg
+!build/index.html
+models/*
+opencv/*
+onnxruntime/*
+!*/.gitkeep
